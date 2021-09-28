@@ -1,21 +1,19 @@
 
-#Todo 出てきた文章を解析して
-#・予定の内容
-#・時間(s)
-#・繰返しがあるのかないのか
-#　をとりだす。
-#method　mecab?機械学習？
 
-from os import write
+
+from os import mkdir, write
 from posix import RTLD_NODELETE
 import parse_speech as parser
 import json,time, uuid
-
+from datetime import datetime, date,timedelta
+from dateutil.parser import isoparse
 from azure.cognitiveservices.language.luis.authoring import LUISAuthoringClient
 from azure.cognitiveservices.language.luis.authoring.models import ApplicationCreateObject
 from azure.cognitiveservices.language.luis.runtime import LUISRuntimeClient
 from msrest.authentication import CognitiveServicesCredentials
 from functools import reduce
+from icalendar import Calendar, Event
+
 
 def luis_connect(transcript) ->dict:
     # authoringKey = '5160ceef65ce4367ad00a9d0f9053e98'
@@ -40,35 +38,65 @@ def luis_connect(transcript) ->dict:
     print("Entities: {}".format (predictionResponse.prediction.entities))
     return predictionResponse.prediction.entities
 
-def parse_date(date,time): 
-    if(date == None or time == None):
-        print('Not found  entitiy of date or time')
-        return
-    dates = { '今日','明日','明後日'}
+def parse_date(entities): 
+    if( 'date' in entities):
+        entities_date = entities['date'][0]
+        # dates = [ '今日','明日','明後日']
 
+        if( entities_date == '今日' ):
+            parsed_date = date.today().isoformat()
+
+        elif(entities_date == '明日' ):
+            parsed_date = (date.today() + timedelta(days=1, minutes=0)).isoformat()
+        elif(entities_date == '明後日'):
+            parsed_date = (date.today() + timedelta(days=2,minutes=0)).isoformat()
+        else:
+            parsed_date = date.today().isoformat()
+
+
+            
+    if('time' in entities):
+        if()
+
+    else:
+
+    return parsed_date
+
+
+def parse_action(entities):
+    action =''
+
+    if( 'name' in entities):
+        action = action + entities['name'][0]+'と'
+    if( 'action' in entities):
+        action = action + entities['action'][0]
     
+    return action 
+        
+
 
 def write_ics_file(path,entities)->int:
 
-    fp = open(path,'w')
-
-    fp.write('BEGIN:VCALENDAR')
-    fp.write(' VERSION:2.0')
-    fp.write(' PRODID:-//hacksw/handcal//NONSGML v1.0//EN')
-    fp.write(' BEGIN:VEVENT')
     
-    start_date = parse_date(entities['date'],entities['time'])
-    start = '19970714T170000Z'
-    end = '19970714T170000Z'
+    with open(path,'w') as fp:
+        fp.write('BEGIN:VCALENDAR\n')
+        fp.write(' VERSION:2.0\n')
+        fp.write(' PRODID:-//hacksw/handcal//NONSGML v1.0//EN\n')
+        fp.write(' BEGIN:VEVENT\n')
+        
+        start_date = parse_date(entities)
+        print(str(start_date))
+        start = '19970714T170000Z'
+        end = '19970714T170000Z'
 
+        
+        fp.write(f'DTSTART: { start }\n')
+        fp.write(f' DTEND:{ end }\n')
+        action = parse_action(entities)
 
-    fp.write(f'DTSTART: { start }')
-    fp.write(f' DTEND:{ end }')
-
-    action =entities['action']
-    fp.write(f'SUMMERY:{ action }')
-    fp.write(' END:VEVENT')
-    fp.write('END:VCALENDAR')
+        fp.write(f'SUMMERY:{ action }\n')
+        fp.write(' END:VEVENT\n')
+        fp.write('END:VCALENDAR\n')
 
     fp.close()
 
@@ -78,8 +106,8 @@ def write_ics_file(path,entities)->int:
 
 def parse2cal(file_name)->str:
 
-    # transcript = parser.parse_speech(filename')
-    transcript ='今日3時にゲームセンター'
+    # transcript = parser.parse_speech(file_name)
+    transcript ='明日３時にしゅんしゅんと水族館にいきます'
     entities = luis_connect(transcript)
     
     path = './temp.ics'
@@ -99,4 +127,4 @@ def parse2cal(file_name)->str:
     
 
 if __name__ == "__main__":
-    parse2cal("temp.mp3")
+    parse2cal("mei.m4a")
