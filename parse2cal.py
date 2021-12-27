@@ -117,7 +117,7 @@ def write_ics_file(path,entities)->int:
 def parse2cal(file_name)->str:
 
     # transcript = parser.parse_speech(file_name)
-    transcript ='明後日３時にしゅんしゅんと水族館にいきます'
+    transcript ='明後日３時に友達と水族館に行きます'
     entities = luis_connect(transcript)
     
     path = './temp.ics'
@@ -127,13 +127,6 @@ def parse2cal(file_name)->str:
         print('failed to write ics file')
         return None
     
-    
-
-
-
-
-
-
     
 
 if __name__ == "__main__":

@@ -9,38 +9,41 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 
-def upload_file(bucket_name,local_path, local_file_name):
-    root_ext_pair = os.path.splitext(local_file_name)
-    object_name = root_ext_pair[0] + str(uuid.uuid4()) + root_ext_pair[1] # S3バケット内で唯一のオブジェクト名になるようにランダム文字列（UUID）を挿入しておく
-    upload_file_path = os.path.join(local_path, local_file_name)
 
-    # Upload the file
-    s3_client = boto3.client('s3')
-    try:
-        response = s3_client.upload_file(upload_file_path, bucket_name, object_name)
-    except ClientError as e:
-        print(e)
-        return None
+
+
+# def upload_file(bucket_name,local_path, local_file_name):
+#     root_ext_pair = os.path.splitext(local_file_name)
+#     object_name = root_ext_pair[0] + str(uuid.uuid4()) + root_ext_pair[1] # S3バケット内で唯一のオブジェクト名になるようにランダム文字列（UUID）を挿入しておく
+#     upload_file_path = os.path.join(local_path, local_file_name)
+
+#     # Upload the file
+#     s3_client = boto3.client('s3')
+#     try:
+#         response = s3_client.upload_file(upload_file_path, bucket_name, object_name)
+#     except ClientError as e:
+#         print(e)
+#         return None
     
-    print("\nUploading " + local_file_name +" to S3 as object:\n\t" + object_name)
-    return object_name 
+#     print("\nUploading " + local_file_name +" to S3 as object:\n\t" + object_name)
+#     return object_name 
 
-def start_transcription_job(bucket_name, object_name, language_code):
-    job_name = re.sub(r'[^a-zA-Z0-9._-]', '', object_name)[:199] # Transcribeのフォーマット制約に合わせる（最大200文字。利用可能文字は英大文字小文字、数字、ピリオド、アンダーバー、ハイフン）
-    media_file_url = 's3://' + bucket_name + '/' + object_name
+# def start_transcription_job(bucket_name, object_name, language_code):
+#     job_name = re.sub(r'[^a-zA-Z0-9._-]', '', object_name)[:199] # Transcribeのフォーマット制約に合わせる（最大200文字。利用可能文字は英大文字小文字、数字、ピリオド、アンダーバー、ハイフン）
+#     media_file_url = 's3://' + bucket_name + '/' + object_name
 
-    client = boto3.client('transcribe')
-    response = client.start_transcription_job(
-        TranscriptionJobName=job_name,
-        LanguageCode=language_code,
-        Media={
-        'MediaFileUri': media_file_url
-        },
-        OutputBucketName=bucket_name
-    )
+#     client = boto3.client('transcribe')
+#     response = client.start_transcription_job(
+#         TranscriptionJobName=job_name,
+#         LanguageCode=language_code,
+#         Media={
+#         'MediaFileUri': media_file_url
+#         },
+#         OutputBucketName=bucket_name
+#     )
 
-    print("\nTranscription start")
-    return job_name
+#     print("\nTranscription start")
+#     return job_name
 
 def get_transcription_file_url(job_name):
     client = boto3.client("transcribe")
@@ -105,7 +108,6 @@ def parse_speech(file_name:str)->str:
 
 
     # STEP1: ローカルにある音声ファイルをS3にアップロード
-
     base_dir_pair = os.path.split(file_name)
     local_path = base_dir_pair[0]
     local_file_name = base_dir_pair[1]
@@ -128,11 +130,69 @@ def parse_speech(file_name:str)->str:
     delete_json_file(result_object_name)
     return transcipt
 
+class jobAws():
+
+
+
+    def __init__(self,bucket_name,locale) -> None:
+        self._bucket_name = bucket_name
+        self._locale = locale
+
+
+    def upload_file(self,local_path, local_file_name):
+
+        # base_dir_pair = os.path.split(file_name)
+        # local_path = base_dir_pair[0]
+        # local_file_name = base_dir_pair[1]
+
+        root_ext_pair = os.path.splitext(local_file_name)
+
+
+        self.object_name = root_ext_pair[0] + str(uuid.uuid4()) + root_ext_pair[1] # S3バケット内で唯一のオブジェクト名になるようにランダム文字列（UUID）を挿入しておく
+        upload_file_path = os.path.join(local_path, local_file_name)
+
+        # Upload the file
+        s3_client = boto3.client('s3')
+        print(upload_file_path)
+
+        try:
+            response = s3_client.upload_file(upload_file_path, self._bucket_name, self.object_name)
+        except ClientError as e:
+            print(e)
+            return None
+        
+        print("\nUploading " + local_file_name +" to S3 as object:\n\t" + self.object_name)
+
+
+    def start_transcription_job(self):
+        job_name = re.sub(r'[^a-zA-Z0-9._-]', '', self.object_name)[:199] # Transcribeのフォーマット制約に合わせる（最大200文字。利用可能文字は英大文字小文字、数字、ピリオド、アンダーバー、ハイフン）
+        media_file_url = 's3://' + self._bucket_name + '/' + self.object_name
+
+        client = boto3.client('transcribe')
+
+        response = client.start_transcription_job(
+            TranscriptionJobName=job_name,
+            LanguageCode = self._locale,
+            Media={
+            'MediaFileUri': media_file_url
+            },
+            OutputBucketName = self._bucket_name
+        )
+
+        print("\nTranscription start")
+        return job_name
+
+
+
+
+
 
 
 if __name__ == "__main__":
     bucket_name = "transcribe-test-baba"
     locale ="ja-JP"
+    
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", type=argparse.FileType("r", encoding="UTF-8"), required=True)
     parser.add_argument("-l", "--locale", help="e.g. \"en-US\" or \"ja-JP\"", required=True)
@@ -144,10 +204,12 @@ if __name__ == "__main__":
     base_dir_pair = os.path.split(file_name)
     local_path = base_dir_pair[0]
     local_file_name = base_dir_pair[1]
+    
+    job_aws = jobAws(bucket_name,locale)
 
-    object_name = upload_file(bucket_name,local_path, local_file_name)
+    job_aws.upload_file(local_path, local_file_name)
+    job_name = job_aws.start_transcription_job()
 
-    job_name = start_transcription_job(bucket_name, object_name, locale)
 
     status = ""
     while status not in ["COMPLETED", "FAILED"]: # 処理が完了したら状態が"COMPLETED"、失敗したら"FAILED"になるからそれまでループ
