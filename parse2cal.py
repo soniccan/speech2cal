@@ -42,23 +42,33 @@ def parse_date(entities):
     if( 'date' in entities):
         entities_date = entities['date'][0]
         # dates = [ '今日','明日','明後日']
+        year=''
+        month=''
+        day=''
+
 
         if( entities_date == '今日' ):
-            parsed_date = date.today().isoformat()
+            parsed_date = datetime.now()
 
         elif(entities_date == '明日' ):
-            parsed_date = (date.today() + timedelta(days=1, minutes=0)).isoformat()
+            parsed_date = datetime.now() +timedelta(days=1,minutes=0)
         elif(entities_date == '明後日'):
-            parsed_date = (date.today() + timedelta(days=2,minutes=0)).isoformat()
+            parsed_date = datetime.now() + timedelta(days=2,minutes=0)
         else:
-            parsed_date = date.today().isoformat()
+            parsed_date = datetime.now()
 
 
-            
-    if('time' in entities):
-        if()
+    # todo
+    # 漢数字->数字
+    # 数字を抽出
 
-    else:
+
+    
+    # if('time' in entities):
+    #     if()
+
+    # else:
+    #     #
 
     return parsed_date
 
@@ -107,7 +117,7 @@ def write_ics_file(path,entities)->int:
 def parse2cal(file_name)->str:
 
     # transcript = parser.parse_speech(file_name)
-    transcript ='明日３時にしゅんしゅんと水族館にいきます'
+    transcript ='明後日３時にしゅんしゅんと水族館にいきます'
     entities = luis_connect(transcript)
     
     path = './temp.ics'
